@@ -19,8 +19,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/article")
+@app.get("/")
 async def root():
+    return {"message": "TheReelDealBackend"}
+
+@app.get("/article")
+async def article():
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
     cur.execute("SELECT * FROM article")
