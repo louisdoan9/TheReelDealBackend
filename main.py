@@ -32,3 +32,13 @@ async def article():
     cur.close()
     conn.close()
     return records
+
+@app.get("/article/latest")
+async def article():
+    conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
+    cur = conn.cursor()
+    cur.execute("select * from article order by rtime desc limit 8")
+    records = cur.fetchall()
+    cur.close()
+    conn.close()
+    return records
