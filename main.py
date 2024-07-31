@@ -43,12 +43,12 @@ async def article():
     conn.close()
     return records
 
-@app.get("/reviews-detailed")
+@app.get("/reviews-partial")
 async def article():
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
 
-    cur.execute("select * from reviewwithauthor")
+    cur.execute('select * from reviewwithauthor order by "Review date"')
     records1 = cur.fetchall()
 
     cur.execute("select * from reviewwithfilm")
@@ -67,9 +67,43 @@ async def article():
                 for reviewCategories in records3:
                     if reviewCategories[0] == reviewFilms[1]:
                         filmCategories.append(reviewCategories[1])
-                mentionedFilms.append({"ID": reviewFilms[1], "Title": reviewFilms[2], "Score": reviewFilms[3], "Categories": filmCategories})
+                mentionedFilms.append({"ID": reviewFilms[1], "Title": reviewFilms[2]})
 
-        review = {"ID": reviewDetails[0], "Title": reviewDetails[1], "Body": reviewDetails[2], "Date": reviewDetails[3], "Author": reviewDetails[4], "Mentioned Films": mentionedFilms}
+        review = {"ID": reviewDetails[0], "Title": reviewDetails[1], "Date": reviewDetails[3], "Author": reviewDetails[4], "Mentioned Films": mentionedFilms}
+        reviews.append(review)
+
+
+    cur.close()
+    conn.close()
+    return reviews
+
+@app.get("/reviews-partial/latest")
+async def article():
+    conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
+    cur = conn.cursor()
+
+    cur.execute('select * from reviewwithauthor order by "Review date" DESC LIMIT 8')
+    records1 = cur.fetchall()
+
+    cur.execute("select * from reviewwithfilm")
+    records2 = cur.fetchall()
+
+    cur.execute("select * from filmwithcategory")
+    records3 = cur.fetchall()
+
+    reviews = []
+    for reviewDetails in records1:
+        mentionedFilms = []
+
+        for reviewFilms in records2:
+            if  reviewDetails[0] == reviewFilms[0]:
+                filmCategories = []
+                for reviewCategories in records3:
+                    if reviewCategories[0] == reviewFilms[1]:
+                        filmCategories.append(reviewCategories[1])
+                mentionedFilms.append({"ID": reviewFilms[1], "Title": reviewFilms[2]})
+
+        review = {"ID": reviewDetails[0], "Title": reviewDetails[1], "Date": reviewDetails[3], "Author": reviewDetails[4], "Mentioned Films": mentionedFilms}
         reviews.append(review)
 
 
@@ -109,4 +143,4 @@ async def article(id):
 
     cur.close()
     conn.close()
-    return reviews[int(id)]
+    return next((review for review in reviews if review["ID"] == int(id)), None)
