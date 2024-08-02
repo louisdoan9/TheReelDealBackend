@@ -23,32 +23,12 @@ app.add_middleware(
 async def root():
     return {"message": "TheReelDealBackend"}
 
-@app.get("/article")
-async def article():
-    conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM article")
-    records = cur.fetchall()
-    cur.close()
-    conn.close()
-    return records
-
-@app.get("/article/latest")
-async def article():
-    conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
-    cur = conn.cursor()
-    cur.execute("select * from article order by rtime desc limit 8")
-    records = cur.fetchall()
-    cur.close()
-    conn.close()
-    return records
-
 @app.get("/reviews-partial")
-async def article():
+async def getReviewsPartial():
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
 
-    cur.execute('select * from reviewwithauthor order by "Review date"')
+    cur.execute('select * from reviewwithauthor order by "Review date" DESC')
     records1 = cur.fetchall()
 
     cur.execute("select * from reviewwithfilm")
@@ -78,7 +58,7 @@ async def article():
     return reviews
 
 @app.get("/reviews-partial/latest")
-async def article():
+async def getReviewsPartialLatest():
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
 
@@ -112,7 +92,7 @@ async def article():
     return reviews
 
 @app.get("/reviews-detailed/{id}")
-async def article(id):
+async def getReviewsDetailed(id):
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
 
@@ -144,3 +124,52 @@ async def article(id):
     cur.close()
     conn.close()
     return next((review for review in reviews if review["ID"] == int(id)), None)
+
+@app.get("/films-partial")
+async def getReviewsPartial():
+    conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
+    cur = conn.cursor()
+
+    cur.execute("""
+    select id, title, nfs.nbc 
+    from film f, normalized_film_scores nfs 
+    where f.id = nfs.fid 
+    order by nbc DESC
+    """                
+    )
+    records = cur.fetchall()
+
+    cur.close()
+    conn.close()
+    return records
+
+
+@app.get("/films-detailed/{id}")
+async def getReviewsDetailed(id):
+    conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
+    cur = conn.cursor()
+
+    cur.execute("""
+    select id, title, nfs.nbc, fst.ts 
+    from film f, normalized_film_scores nfs, film_scoring_trends fst 
+    where f.id = nfs.fid and fst.fid = nfs.fid 
+    order by nbc DESC
+    """                
+    )
+    records1 = cur.fetchall()
+
+    cur.execute("select * from filmwithcategory")
+    records2 = cur.fetchall()
+
+    films = []
+    for film in records1:
+        filmCategories = []
+        for category in records2:
+            if category[0] == film[0]:
+                filmCategories.append(category[1])
+        films.append({"ID": film[0], "Title": film[1], "Normalized Score": film[2], "Score Trend": film[3], "Film Categories": filmCategories})
+
+
+    cur.close()
+    conn.close()
+    return next((film for film in films if film["ID"] == int(id)), None)
