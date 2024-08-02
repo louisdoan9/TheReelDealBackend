@@ -152,7 +152,7 @@ async def getReviewsPartial():
     select id, title, nfs.nbc
     from film f, normalized_film_scores nfs 
     where f.id = nfs.fid 
-    order by nbc DESC LIMIT 8
+    order by nbc DESC LIMIT 3
     """                
     )
     records = cur.fetchall()
