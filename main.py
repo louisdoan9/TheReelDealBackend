@@ -143,6 +143,24 @@ async def getReviewsPartial():
     conn.close()
     return records
 
+@app.get("/films-partial/latest")
+async def getReviewsPartial():
+    conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
+    cur = conn.cursor()
+
+    cur.execute("""
+    select id, title, nfs.nbc
+    from film f, normalized_film_scores nfs 
+    where f.id = nfs.fid 
+    order by nbc DESC LIMIT 8
+    """                
+    )
+    records = cur.fetchall()
+
+    cur.close()
+    conn.close()
+    return records
+
 
 @app.get("/films-detailed/{id}")
 async def getReviewsDetailed(id):
