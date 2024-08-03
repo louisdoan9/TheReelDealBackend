@@ -167,14 +167,25 @@ async def getReviewsDetailed(id):
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
 
-    cur.execute("""
+    cur.execute(f"""
     select id, title, nfs.nbc, fst.ts 
     from film f, normalized_film_scores nfs, film_scoring_trends fst 
-    where f.id = nfs.fid and fst.fid = nfs.fid 
+    where f.id = nfs.fid and fst.fid = nfs.fid and f.id = {id}
     order by nbc DESC
     """                
     )
     records1 = cur.fetchall()
+
+    noNormalized = False
+    if (records1 == []):
+        cur.execute(f"""
+        select id, title, fst.ts 
+        from film f, film_scoring_trends fst 
+        where f.id = fst.fid and f.id = {id}
+        """                
+        )
+        records1 = cur.fetchall()
+        noNormalized = True
 
     cur.execute("select * from filmwithcategory")
     records2 = cur.fetchall()
@@ -185,7 +196,8 @@ async def getReviewsDetailed(id):
         for category in records2:
             if category[0] == film[0]:
                 filmCategories.append(category[1])
-        films.append({"ID": film[0], "Title": film[1], "Normalized Score": film[2], "Score Trend": film[3], "Film Categories": filmCategories})
+        if noNormalized: films.append({"ID": film[0], "Title": film[1], "Normalized Score": 0, "Score Trend": film[2], "Film Categories": filmCategories})
+        else : films.append({"ID": film[0], "Title": film[1], "Normalized Score": film[2], "Score Trend": film[3], "Film Categories": filmCategories})
 
 
     cur.close()
