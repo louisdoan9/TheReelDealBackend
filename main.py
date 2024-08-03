@@ -137,11 +137,25 @@ async def getReviewsPartial():
     order by nbc DESC
     """                
     )
-    records = cur.fetchall()
+    records1 = cur.fetchall()
+
+   
+    cur.execute(f"""
+    select id, title, 0 as nbc
+    from film f
+    where f.id NOT in (
+        select id
+        from film f, normalized_film_scores nfs 
+        where f.id = nfs.fid 
+        order by nbc DESC
+    )
+    """                
+    )
+    records2 = cur.fetchall()
 
     cur.close()
     conn.close()
-    return records
+    return records1 + records2
 
 @app.get("/films-partial/latest")
 async def getReviewsPartial():
