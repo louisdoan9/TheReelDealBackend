@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
+from typing import Optional
 import psycopg2
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -6,6 +8,11 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
 load_dotenv()
+
+class User(BaseModel):
+    name: str
+    pwdhash: str
+    rname: Optional[str] = None
 
 app = FastAPI()
 
@@ -217,3 +224,16 @@ async def getReviewsDetailed(id):
     cur.close()
     conn.close()
     return next((film for film in films if film["ID"] == int(id)), None)
+
+@app.post("/users")
+async def getReviewsDetailed(userInfo: User):
+    conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
+    cur = conn.cursor()
+
+    cur.execute('INSERT INTO users("name", pwdhash, rname) VALUES (%s, %s, %s)', (userInfo.name, userInfo.pwdhash, userInfo.rname))
+
+    conn.commit()
+
+    cur.close()
+    conn.close()
+    return {"message": "success"}
