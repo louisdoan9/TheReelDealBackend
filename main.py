@@ -225,7 +225,7 @@ async def getReviewsDetailed(id):
     conn.close()
     return next((film for film in films if film["ID"] == int(id)), None)
 
-@app.get("/users")
+@app.post("/get-user")
 async def getUser(userInfo: User):
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
@@ -238,7 +238,7 @@ async def getUser(userInfo: User):
     conn.close()
     return {"userInfo": records[0]}
 
-@app.post("/users")
+@app.post("/create-user")
 async def createUser(userInfo: User):
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
