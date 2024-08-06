@@ -236,17 +236,22 @@ async def getUser(userInfo: User):
 
     cur.close()
     conn.close()
-    return {"userInfo": records[0]}
+    if (len(records) > 0):
+        return {"userInfo": records[0]}
+    else:
+        return {"message": "User not found"}
 
 @app.post("/create-user")
 async def createUser(userInfo: User):
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
 
-    cur.execute('INSERT INTO users("name", pwdhash, rname) VALUES (%s, %s, %s)', (userInfo.name, userInfo.pwdhash, userInfo.rname))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
-    return {"message": "success"}
+    try:
+        cur.execute('INSERT INTO users("name", pwdhash, rname) VALUES (%s, %s, %s)', (userInfo.name, userInfo.pwdhash, userInfo.rname))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"message": "success"}
+    except:
+        return {"message": "failed"}
+    
