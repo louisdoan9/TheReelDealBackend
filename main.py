@@ -247,11 +247,14 @@ async def createUser(userInfo: User):
     cur = conn.cursor()
 
     try:
-        cur.execute('INSERT INTO users("name", pwdhash, rname) VALUES (%s, %s, %s)', (userInfo.name, userInfo.pwdhash, userInfo.rname))
+        cur.execute('INSERT INTO users("name", pwdhash, rname) VALUES (%s, %s, %s) RETURNING id', (userInfo.name, userInfo.pwdhash, userInfo.rname))
         conn.commit()
+        
+        records = cur.fetchall()
+
         cur.close()
         conn.close()
-        return {"message": "success"}
+        return {"userInfo": records[0]}
     except:
         return {"message": "failed"}
     
