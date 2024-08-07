@@ -316,36 +316,39 @@ async def getReviewsDetailed(id):
     cur = conn.cursor()
 
     cur.execute(f"""
-    select f4.id, f4.title, count 
-    from
+    select a.id, a.title, a.rtime, count 
+    from article a,
     (
     select f, count(*)
     from
     (
-    select f.fid, f2.fid as f, f.category
-    from fcategory f, fcategory f2
-    where f.fid <> f2.fid and f.category = f2.category and f.fid = {id}
-    ) group by f order by count desc limit 2
-    ), film f4
-    where f4.id = f
+    select f.aid, f2.aid as f, f.fid
+    from fmention f, fmention f2 
+    where f.aid <> f2.aid and f.fid = f2.fid and f.aid = {id}
+    ) group by f order by count desc limit 2)
+    where a.id = f
+    order by count desc
     """                
     )
     records = cur.fetchall()
+    print(records)
 
-    films = []
-    for film in records:
+    reviews = []
+    for review in records:
         cur.execute(f"""
-        select nbc
-        from normalized_film_scores nfs 
-        where nfs.fid = {film[0]}
+        select r."Film title" 
+        from reviewwithfilm r, reviewwithfilm r2 
+        where r."Review ID" = {review[0]} and r2."Review ID" = {id} and r."Film ID"  = r2."Film ID" 
         """                
         )
         records2 = cur.fetchall()
-        if len(records2) == 0: records2 = [0]
-        films.append({"ID": film[0], "Title": film[1], "Matching Categories": film[2], "Normalized Score": records2[0]})
+        fixedArray = []
+        for film in records2:
+            fixedArray.append(film[0])
+        reviews.append({"ID": review[0], "Title": review[1], "Date": review[2], "Matching Films": fixedArray})
 
     
 
     cur.close()
     conn.close()
-    return films
+    return reviews
