@@ -258,3 +258,94 @@ async def createUser(userInfo: User):
     except:
         return {"message": "failed"}
     
+
+@app.get("/related-films/{id}")
+async def getReviewsDetailed(id):
+    conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
+    cur = conn.cursor()
+
+    cur.execute(f"""
+    select f4.id, f4.title, count 
+    from
+    (
+    select f, count(*)
+    from
+    (
+    select f.fid, f2.fid as f, f.category
+    from fcategory f, fcategory f2
+    where f.fid <> f2.fid and f.category = f2.category and f.fid = {id}
+    ) group by f order by count desc limit 2
+    ), film f4
+    where f4.id = f
+    """                
+    )
+    records = cur.fetchall()
+
+    films = []
+    for film in records:
+        cur.execute(f"""
+        select nbc
+        from normalized_film_scores nfs 
+        where nfs.fid = {film[0]}
+        """                
+        )
+        records2 = cur.fetchall()
+        if len(records2) == 0: records2 = [0]
+
+        cur.execute(f"""
+        select f.category 
+        from filmwithcategory f, filmwithcategory f2 
+        where f.id = {film[0]} and f2.id = {id} and f.category = f2.category 
+        """                
+        )
+        records3 = cur.fetchall()
+        fixedArray = []
+        for category in records3:
+            fixedArray.append(category[0])
+        films.append({"ID": film[0], "Title": film[1], "Matching Categories": fixedArray, "Normalized Score": records2[0]})
+
+    
+
+    cur.close()
+    conn.close()
+    return films
+
+@app.get("/related-reviews/{id}")
+async def getReviewsDetailed(id):
+    conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
+    cur = conn.cursor()
+
+    cur.execute(f"""
+    select f4.id, f4.title, count 
+    from
+    (
+    select f, count(*)
+    from
+    (
+    select f.fid, f2.fid as f, f.category
+    from fcategory f, fcategory f2
+    where f.fid <> f2.fid and f.category = f2.category and f.fid = {id}
+    ) group by f order by count desc limit 2
+    ), film f4
+    where f4.id = f
+    """                
+    )
+    records = cur.fetchall()
+
+    films = []
+    for film in records:
+        cur.execute(f"""
+        select nbc
+        from normalized_film_scores nfs 
+        where nfs.fid = {film[0]}
+        """                
+        )
+        records2 = cur.fetchall()
+        if len(records2) == 0: records2 = [0]
+        films.append({"ID": film[0], "Title": film[1], "Matching Categories": film[2], "Normalized Score": records2[0]})
+
+    
+
+    cur.close()
+    conn.close()
+    return films
