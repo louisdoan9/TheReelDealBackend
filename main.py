@@ -316,8 +316,8 @@ async def getReviewsDetailed(id):
     cur = conn.cursor()
 
     cur.execute(f"""
-    select a.id, a.title, a.rtime, count 
-    from article a,
+    select a.id, a.title, r."Author's username" , a.rtime, count
+    from article a, reviewwithauthor r,
     (
     select f, count(*)
     from
@@ -326,7 +326,7 @@ async def getReviewsDetailed(id):
     from fmention f, fmention f2 
     where f.aid <> f2.aid and f.fid = f2.fid and f.aid = {id}
     ) group by f order by count desc limit 2)
-    where a.id = f
+    where a.id = f and a.id = r."Review ID" 
     order by count desc
     """                
     )
@@ -345,7 +345,7 @@ async def getReviewsDetailed(id):
         fixedArray = []
         for film in records2:
             fixedArray.append(film[0])
-        reviews.append({"ID": review[0], "Title": review[1], "Date": review[2], "Matching Films": fixedArray})
+        reviews.append({"ID": review[0], "Title": review[1], "Author": review[2], "Date": review[3], "Matching Films": fixedArray})
 
     
 
