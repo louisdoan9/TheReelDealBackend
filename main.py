@@ -290,7 +290,7 @@ async def getReviewsDetailed(id):
         """                
         )
         records2 = cur.fetchall()
-        if len(records2) == 0: records2 = [0]
+        if len(records2) == 0: records2 = [[0]]
 
         cur.execute(f"""
         select f.category 
@@ -302,7 +302,7 @@ async def getReviewsDetailed(id):
         fixedArray = []
         for category in records3:
             fixedArray.append(category[0])
-        films.append({"ID": film[0], "Title": film[1], "Matching Categories": fixedArray, "Normalized Score": records2[0]})
+        films.append({"ID": film[0], "Title": film[1], "Matching Categories": fixedArray, "Normalized Score": records2[0][0]})
 
     
 
