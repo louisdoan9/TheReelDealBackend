@@ -83,34 +83,30 @@ async def getReviewsDetailed(id):
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
 
-    cur.execute("select * from reviewwithauthor")
-    records1 = cur.fetchall()
+    cur.execute(f'select * from getreviewauthors({id})')
+    reviews = cur.fetchall()
 
-    cur.execute("select * from reviewwithfilm")
-    records2 = cur.fetchall()
-
-    cur.execute("select * from filmwithcategory")
-    records3 = cur.fetchall()
-
-    reviews = []
-    for reviewDetails in records1:
+    detailedReview = {}
+    for review in reviews:
+        cur.execute(f'select * from getreviewfilms({review[0]})')
+        reviewFilms = cur.fetchall()
+        
         mentionedFilms = []
+        for film in reviewFilms:
+            cur.execute(f'select * from getfilmcategories({film[0]})')
+            filmCategories = cur.fetchall()
 
-        for reviewFilms in records2:
-            if  reviewDetails[0] == reviewFilms[0]:
-                filmCategories = []
-                for reviewCategories in records3:
-                    if reviewCategories[0] == reviewFilms[1]:
-                        filmCategories.append(reviewCategories[1])
-                mentionedFilms.append({"ID": reviewFilms[1], "Title": reviewFilms[2], "Score": reviewFilms[3], "Categories": filmCategories})
+            includedCategories = []
+            for category in filmCategories:
+                    includedCategories.append(category[0])
+            mentionedFilms.append({"ID": film[0], "Title": film[1], "Score": film[2], "Categories": includedCategories})
 
-        review = {"ID": reviewDetails[0], "Title": reviewDetails[1], "Body": reviewDetails[2], "Date": reviewDetails[3], "Author": reviewDetails[4], "Mentioned Films": mentionedFilms}
-        reviews.append(review)
+        detailedReview = {"ID": review[0], "Title": review[1], "Body": review[2], "Date": review[3], "Author": review[4], "Mentioned Films": mentionedFilms}
 
 
     cur.close()
     conn.close()
-    return next((review for review in reviews if review["ID"] == int(id)), None)
+    return detailedReview
 
 @app.get("/films-partial")
 async def getReviewsPartial():
