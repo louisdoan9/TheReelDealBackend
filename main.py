@@ -34,69 +34,49 @@ async def root():
 async def getReviewsPartial():
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
+    partialReviews = []
 
     cur.execute('select * from reviewwithauthor order by "Review date" DESC')
-    records1 = cur.fetchall()
+    reviews = cur.fetchall()
 
-    cur.execute("select * from reviewwithfilm")
-    records2 = cur.fetchall()
+    for review in reviews:
+        cur.execute(f'select * from getreviewfilms({review[0]})')
+        reviewFilms = cur.fetchall()
 
-    cur.execute("select * from filmwithcategory")
-    records3 = cur.fetchall()
-
-    reviews = []
-    for reviewDetails in records1:
         mentionedFilms = []
+        for film in reviewFilms:
+            mentionedFilms.append({"ID": film[0], "Title": film[1]})
 
-        for reviewFilms in records2:
-            if  reviewDetails[0] == reviewFilms[0]:
-                filmCategories = []
-                for reviewCategories in records3:
-                    if reviewCategories[0] == reviewFilms[1]:
-                        filmCategories.append(reviewCategories[1])
-                mentionedFilms.append({"ID": reviewFilms[1], "Title": reviewFilms[2]})
-
-        review = {"ID": reviewDetails[0], "Title": reviewDetails[1], "Date": reviewDetails[3], "Author": reviewDetails[4], "Mentioned Films": mentionedFilms}
-        reviews.append(review)
-
+        partialReview = {"ID": review[0], "Title": review[1], "Date": review[3], "Author": review[4], "Mentioned Films": mentionedFilms}
+        partialReviews.append(partialReview)
 
     cur.close()
     conn.close()
-    return reviews
+    return partialReviews
 
 @app.get("/reviews-partial/latest")
-async def getReviewsPartialLatest():
+async def getReviewsPartial():
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
+    partialReviews = []
 
     cur.execute('select * from reviewwithauthor order by "Review date" DESC LIMIT 8')
-    records1 = cur.fetchall()
+    reviews = cur.fetchall()
 
-    cur.execute("select * from reviewwithfilm")
-    records2 = cur.fetchall()
+    for review in reviews:
+        cur.execute(f'select * from getreviewfilms({review[0]})')
+        reviewFilms = cur.fetchall()
 
-    cur.execute("select * from filmwithcategory")
-    records3 = cur.fetchall()
-
-    reviews = []
-    for reviewDetails in records1:
         mentionedFilms = []
+        for film in reviewFilms:
+            mentionedFilms.append({"ID": film[0], "Title": film[1]})
 
-        for reviewFilms in records2:
-            if  reviewDetails[0] == reviewFilms[0]:
-                filmCategories = []
-                for reviewCategories in records3:
-                    if reviewCategories[0] == reviewFilms[1]:
-                        filmCategories.append(reviewCategories[1])
-                mentionedFilms.append({"ID": reviewFilms[1], "Title": reviewFilms[2]})
-
-        review = {"ID": reviewDetails[0], "Title": reviewDetails[1], "Date": reviewDetails[3], "Author": reviewDetails[4], "Mentioned Films": mentionedFilms}
-        reviews.append(review)
-
+        partialReview = {"ID": review[0], "Title": review[1], "Date": review[3], "Author": review[4], "Mentioned Films": mentionedFilms}
+        partialReviews.append(partialReview)
 
     cur.close()
     conn.close()
-    return reviews
+    return partialReviews
 
 @app.get("/reviews-detailed/{id}")
 async def getReviewsDetailed(id):
