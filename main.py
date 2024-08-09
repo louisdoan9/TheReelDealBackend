@@ -113,50 +113,32 @@ async def getReviewsPartial():
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
 
-    cur.execute("""
-    select id, title, nfs.nbc 
-    from film f, normalized_film_scores nfs 
-    where f.id = nfs.fid 
-    order by nbc DESC
-    """                
-    )
-    records1 = cur.fetchall()
+    cur.execute("select * from getpartialfilms()")
+    films = cur.fetchall()
 
-   
-    cur.execute(f"""
-    select id, title, 0 as nbc
-    from film f
-    where f.id NOT in (
-        select id
-        from film f, normalized_film_scores nfs 
-        where f.id = nfs.fid 
-        order by nbc DESC
-    )
-    """                
-    )
-    records2 = cur.fetchall()
+    partialFilms = []
+    for film in films:
+        partialFilms.append({"ID": film[0], "Title": film[1], "Normalized Score": film[2]})
 
     cur.close()
     conn.close()
-    return records1 + records2
+    return partialFilms
 
-@app.get("/films-partial/latest")
+@app.get("/films-partial/top")
 async def getReviewsPartial():
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
 
-    cur.execute("""
-    select id, title, nfs.nbc
-    from film f, normalized_film_scores nfs 
-    where f.id = nfs.fid 
-    order by nbc DESC LIMIT 3
-    """                
-    )
-    records = cur.fetchall()
+    cur.execute("select * from getpartialfilms() LIMIT 3")
+    films = cur.fetchall()
+
+    partialFilms = []
+    for film in films:
+        partialFilms.append({"ID": film[0], "Title": film[1], "Normalized Score": film[2]})
 
     cur.close()
     conn.close()
-    return records
+    return partialFilms
 
 
 @app.get("/films-detailed/{id}")
