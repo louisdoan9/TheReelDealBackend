@@ -195,91 +195,49 @@ async def getReviewsDetailed(id):
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
 
-    cur.execute(f"""
-    select f4.id, f4.title, count 
-    from
-    (
-    select f, count(*)
-    from
-    (
-    select f.fid, f2.fid as f, f.category
-    from fcategory f, fcategory f2
-    where f.fid <> f2.fid and f.category = f2.category and f.fid = {id}
-    ) group by f order by count desc limit 2
-    ), film f4
-    where f4.id = f
-    """                
-    )
-    records = cur.fetchall()
+    cur.execute("select * from getrelatedfilms(%s)", (id,))
+    films = cur.fetchall()
 
-    films = []
-    for film in records:
-        cur.execute(f"""
-        select nbc
-        from normalized_film_scores nfs 
-        where nfs.fid = {film[0]}
-        """                
-        )
-        records2 = cur.fetchall()
-        if len(records2) == 0: records2 = [[0]]
+    relatedFilms = []
+    for film in films:
+        cur.execute("select * from getpartialfilm(%s)", (film[0],))
+        partialfilm = cur.fetchall()
 
-        cur.execute(f"""
-        select f.category 
-        from filmwithcategory f, filmwithcategory f2 
-        where f.id = {film[0]} and f2.id = {id} and f.category = f2.category 
-        """                
-        )
-        records3 = cur.fetchall()
-        fixedArray = []
-        for category in records3:
-            fixedArray.append(category[0])
-        films.append({"ID": film[0], "Title": film[1], "Matching Categories": fixedArray, "Normalized Score": records2[0][0]})
+        cur.execute("select * from getsharedcategories(%s, %s)", (id, film[0]))
+        categories = cur.fetchall()
 
-    
+        sharedCategories = []
+        for category in categories:
+            sharedCategories.append(category[0])
+
+        relatedFilms.append({"ID": partialfilm[0][0], "Title": partialfilm[0][1], "Matching Categories": sharedCategories, "Normalized Score": partialfilm[0][2]})
 
     cur.close()
     conn.close()
-    return films
+    return relatedFilms
 
 @app.get("/related-reviews/{id}")
 async def getReviewsDetailed(id):
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
 
-    cur.execute(f"""
-    select a.id, a.title, r."Author's username" , a.rtime, count
-    from article a, reviewwithauthor r,
-    (
-    select f, count(*)
-    from
-    (
-    select f.aid, f2.aid as f, f.fid
-    from fmention f, fmention f2 
-    where f.aid <> f2.aid and f.fid = f2.fid and f.aid = {id}
-    ) group by f order by count desc limit 2)
-    where a.id = f and a.id = r."Review ID" 
-    order by count desc
-    """                
-    )
-    records = cur.fetchall()
-    print(records)
+    cur.execute(f"select * from getrelatedreviews({id})")
+    reviews = cur.fetchall()
 
-    reviews = []
-    for review in records:
-        cur.execute(f"""
-        select r."Film title" 
-        from reviewwithfilm r, reviewwithfilm r2 
-        where r."Review ID" = {review[0]} and r2."Review ID" = {id} and r."Film ID"  = r2."Film ID" 
-        """                
-        )
-        records2 = cur.fetchall()
-        fixedArray = []
-        for film in records2:
-            fixedArray.append(film[0])
-        reviews.append({"ID": review[0], "Title": review[1], "Author": review[2], "Date": review[3], "Matching Films": fixedArray})
+    relatedReviews = []
+    for review in reviews:
+        cur.execute(f"select * from getreviewauthors({review[0]})")
+        partialReview = cur.fetchall()
 
-    
+        cur.execute(f"select * from getsharedfilms({id}, {review[0]})")
+        films = cur.fetchall()
+
+        sharedFilms = []
+        for film in films:
+            sharedFilms.append(film[0])
+            
+        relatedReviews.append({"ID": partialReview[0][0], "Title": partialReview[0][1], "Author": partialReview[0][4], "Date": partialReview[0][3], "Matching Films": sharedFilms})
 
     cur.close()
     conn.close()
-    return reviews
+    return relatedReviews
