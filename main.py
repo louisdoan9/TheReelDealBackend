@@ -146,42 +146,21 @@ async def getReviewsDetailed(id):
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
 
-    cur.execute(f"""
-    select id, title, nfs.nbc, fst.ts 
-    from film f, normalized_film_scores nfs, film_scoring_trends fst 
-    where f.id = nfs.fid and fst.fid = nfs.fid and f.id = {id}
-    order by nbc DESC
-    """                
-    )
-    records1 = cur.fetchall()
+    cur.execute(f"select * from getdetailedfilm({id})")
+    film = cur.fetchall()[0]
+        
+    cur.execute(f'select * from getfilmcategories({id})')
+    filmCategories = cur.fetchall()
 
-    noNormalized = False
-    if (records1 == []):
-        cur.execute(f"""
-        select id, title, fst.ts 
-        from film f, film_scoring_trends fst 
-        where f.id = fst.fid and f.id = {id}
-        """                
-        )
-        records1 = cur.fetchall()
-        noNormalized = True
-
-    cur.execute("select * from filmwithcategory")
-    records2 = cur.fetchall()
-
-    films = []
-    for film in records1:
-        filmCategories = []
-        for category in records2:
-            if category[0] == film[0]:
-                filmCategories.append(category[1])
-        if noNormalized: films.append({"ID": film[0], "Title": film[1], "Normalized Score": 0, "Score Trend": film[2], "Film Categories": filmCategories})
-        else : films.append({"ID": film[0], "Title": film[1], "Normalized Score": film[2], "Score Trend": film[3], "Film Categories": filmCategories})
-
+    includedCategories = []
+    for category in filmCategories:
+        includedCategories.append(category[0])
+    
+    detailedFilm = {"ID": film[0], "Title": film[1], "Normalized Score": film[2], "Score Trend": film[3], "Film Categories": includedCategories}
 
     cur.close()
     conn.close()
-    return next((film for film in films if film["ID"] == int(id)), None)
+    return detailedFilm
 
 @app.post("/get-user")
 async def getUser(userInfo: User):
