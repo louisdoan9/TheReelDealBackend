@@ -40,7 +40,7 @@ async def getReviewsPartial():
     reviews = cur.fetchall()
 
     for review in reviews:
-        cur.execute(f'select * from getreviewfilms({review[0]})')
+        cur.execute('select * from getreviewfilms(%s)', (review[0],))
         reviewFilms = cur.fetchall()
 
         mentionedFilms = []
@@ -64,7 +64,7 @@ async def getReviewsPartial():
     reviews = cur.fetchall()
 
     for review in reviews:
-        cur.execute(f'select * from getreviewfilms({review[0]})')
+        cur.execute('select * from getreviewfilms(%s)', (review[0],))
         reviewFilms = cur.fetchall()
 
         mentionedFilms = []
@@ -83,23 +83,17 @@ async def getReviewsDetailed(id):
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
 
-    cur.execute(f'select * from getreviewauthors({id})')
+    cur.execute('select * from getreviewauthors(%s)', (id,))
     reviews = cur.fetchall()
 
     detailedReview = {}
     for review in reviews:
-        cur.execute(f'select * from getreviewfilms({review[0]})')
+        cur.execute('select * from getreviewfilms(%s)', (review[0],))
         reviewFilms = cur.fetchall()
         
         mentionedFilms = []
         for film in reviewFilms:
-            cur.execute(f'select * from getfilmcategories({film[0]})')
-            filmCategories = cur.fetchall()
-
-            includedCategories = []
-            for category in filmCategories:
-                    includedCategories.append(category[0])
-            mentionedFilms.append({"ID": film[0], "Title": film[1], "Score": film[2], "Categories": includedCategories})
+            mentionedFilms.append({"ID": film[0], "Title": film[1], "Score": film[2]})
 
         detailedReview = {"ID": review[0], "Title": review[1], "Body": review[2], "Date": review[3], "Author": review[4], "Mentioned Films": mentionedFilms}
 
@@ -146,10 +140,10 @@ async def getReviewsDetailed(id):
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
 
-    cur.execute(f"select * from getdetailedfilm({id})")
+    cur.execute('select * from getdetailedfilm(%s)', (id,))
     film = cur.fetchall()[0]
         
-    cur.execute(f'select * from getfilmcategories({id})')
+    cur.execute('select * from getfilmcategories(%s)', (id,))
     filmCategories = cur.fetchall()
 
     includedCategories = []
@@ -167,7 +161,7 @@ async def getUser(userInfo: User):
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
 
-    cur.execute('SELECT id from users where "name" = %s and pwdhash = %s', (userInfo.name, userInfo.pwdhash))
+    cur.execute("select * from getuser(%s, %s)", (userInfo.name, userInfo.pwdhash))
 
     records = cur.fetchall()
 
@@ -184,7 +178,7 @@ async def createUser(userInfo: User):
     cur = conn.cursor()
 
     try:
-        cur.execute('INSERT INTO users("name", pwdhash, rname) VALUES (%s, %s, %s) RETURNING id', (userInfo.name, userInfo.pwdhash, userInfo.rname))
+        cur.execute('select * from createuser(%s, %s, %s)', (userInfo.name, userInfo.pwdhash, userInfo.rname))
         conn.commit()
         
         records = cur.fetchall()
