@@ -221,15 +221,15 @@ async def getReviewsDetailed(id):
     conn = psycopg2.connect(f"dbname=TheReelDealDB user=TheReelDealDB_owner password={os.getenv('DBPASSWORD')} port=5432 host=ep-tight-mode-a53mncek.us-east-2.aws.neon.tech")
     cur = conn.cursor()
 
-    cur.execute(f"select * from getrelatedreviews({id})")
+    cur.execute("select * from getrelatedreviews(%s)", (id,))
     reviews = cur.fetchall()
 
     relatedReviews = []
     for review in reviews:
-        cur.execute(f"select * from getreviewauthors({review[0]})")
+        cur.execute("select * from getreviewauthors(%s)", (review[0],))
         partialReview = cur.fetchall()
 
-        cur.execute(f"select * from getsharedfilms({id}, {review[0]})")
+        cur.execute("select * from getsharedfilms(%s, %s)", (id, review[0]))
         films = cur.fetchall()
 
         sharedFilms = []
